@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton,
-    QLineEdit, QLabel, QWidget
+    QLineEdit, QLabel, QWidget, QSizePolicy, QSpacerItem
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -13,7 +13,7 @@ def create_side_menu(button_callbacks):
 
     panel_layout = QVBoxLayout(panel_widget)
     panel_layout.setContentsMargins(10, 20, 10, 20)  # Внутренние отступы
-    panel_layout.setSpacing(50)  # Расстояние между кнопками
+    panel_layout.setSpacing(50)# Расстояние между кнопками
 
     # Добавляем растяжку сверху
     panel_layout.addStretch()
@@ -28,16 +28,16 @@ def create_side_menu(button_callbacks):
                 QPushButton {
                     background-color: white;  /* цвет */
                     border: none;             /* рамка */
-                    border-radius: 75px;      /* скругления */
+                    border-radius: 100px;     /* скругления */
                     padding: 20px;
-                    font-size: 22px;          /* Размер текста */
+                    font-size: 20px;          /* Размер текста */
                     font-family: "Inter";     /* Шрифт */                    
                 }
-                QPushButton:hover {
-                    background-color: #FFC107; /* Светло-золотой при наведении */
+                QPushButton:hover {       
+                    background-color: #3C7993; 
                 }
             """)
-            button.setFixedSize(400, 150)  # Размеры для кнопки "продажа"
+            button.setFixedSize(400, 200)  # Размеры для кнопки "продажа"
         else:
             # Базовый стиль для остальных кнопок
             button.setStyleSheet("""
@@ -50,10 +50,11 @@ def create_side_menu(button_callbacks):
                     font-family: "Inter";    /* Шрифт */
                 }
                 QPushButton:hover {
-                    background-color: #B0C4DE;
+                    /*border-radius: 50px;*/
+                    background-color: #3C7993;
                 }
             """)
-            button.setFixedSize(300, 100)  # Размеры для остальных кнопок
+            button.setFixedSize(300, 150)  # Размеры для остальных кнопок
 
         button.clicked.connect(callback)
         panel_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -63,27 +64,23 @@ def create_side_menu(button_callbacks):
 
     return panel_widget
 
-
-
-
 def create_top_bar():
     """
-    Создает верхнюю полоску и возвращает ее как виджет.
+    Создает верхнюю полоску с фиксированным размещением элементов и возвращает ее как виджет.
     """
+    # Создаем верхнюю полоску
     top_bar = QWidget()
     top_bar.setStyleSheet("background-color: #3C7993;")
-    top_bar_layout = QHBoxLayout(top_bar)
-    top_bar_layout.setContentsMargins(15, 5, 15, 5)  # Отступы в верхней полоске
-    top_bar_layout.setSpacing(10)
+    top_bar.setFixedHeight(50)  # Фиксированная высота верхней полоски
 
     # Логотип/текст "Игровая полка"
-    logo = QLabel("Игровая полка")
+    logo = QLabel("Игровая полка", top_bar)
     logo.setFont(QFont("Inter", 20))
     logo.setStyleSheet("color: #FFFFFF;")
-    top_bar_layout.addWidget(logo, alignment=Qt.AlignmentFlag.AlignLeft)
+    logo.setGeometry(200, 10, 200, 30)  # Устанавливаем позицию (x, y) и размер (ширина, высота)
 
     # Поле для поиска
-    search_box = QLineEdit()
+    search_box = QLineEdit(top_bar)
     search_box.setPlaceholderText("поиск по жанру")
     search_box.setStyleSheet("""
         QLineEdit {
@@ -94,9 +91,11 @@ def create_top_bar():
             font-size: 14px;
         }
     """)
-    top_bar_layout.addWidget(search_box)
+    search_box.setGeometry(600, 10, 800, 30)  # Устанавливаем позицию (x, y) и размер (ширина, высота)
 
     return top_bar
+
+
 
 
 class MainWindow(QMainWindow):
