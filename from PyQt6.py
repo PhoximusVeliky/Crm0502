@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QWidget, QGridLayout, QScrollArea, QDialog, QTableWidget, QTableWidgetItem
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QFont
 
 def create_side_menu(button_callbacks):
@@ -85,11 +86,18 @@ class MainPage(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
+        
+        # Добавляем отступы для основного макета
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        # Заголовок
         title = QLabel("Жанры")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2A5266; margin: 10px 0;")
-        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignLeft)
+        title.setStyleSheet("color: #2A5266; margin: 0 0 20px 0;")  # Отступ снизу
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
+        # Сетка жанров
         genres_layout = QGridLayout()
         genres_layout.setHorizontalSpacing(30)
         genres_layout.setVerticalSpacing(20)
@@ -110,6 +118,7 @@ class MainPage(QWidget):
                 genre_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 genre_label.setFixedSize(200, 120)
                 genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
 class CatalogPage(QWidget):
     def __init__(self):
@@ -192,6 +201,7 @@ class SoldItemsPage(QWidget):
         title = QLabel("Проданные товары")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
         layout.addWidget(title)
 
         # Прокручиваемая область для списка продаж
@@ -290,6 +300,7 @@ class ApplyCardPage(QWidget):
         title = QLabel("Оформление карты")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
         layout.addWidget(title)
 
         # Поля ввода
@@ -330,14 +341,142 @@ class ApplyCardPage(QWidget):
         confirm_button.setFixedSize(50, 50)
         layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
 
+
 class SalePage(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout(self)
-        label = QLabel("Начать продажу")
-        label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Заголовок страницы
+        title = QLabel("Начать продажу")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
+        layout.addWidget(title)
+
+        # Прокручиваемая область для товаров
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(False)  # Отключаем растягивание содержимого
+        scroll_area.setStyleSheet("background-color: white; border: none;")
+        layout.addWidget(scroll_area)
+
+        # Контейнер для списка товаров
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(10, 10, 10, 10)
+        scroll_layout.setSpacing(10)
+
+        # Пример списка товаров с кнопками увеличения/уменьшения
+        self.cart = {}
+        button_style = """
+            QPushButton {
+                background-color: #3C7993;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2A5266;
+            }
+        """
+        for i in range(5):
+            item_widget = QWidget()
+            item_widget.setStyleSheet("""
+                QWidget {
+                    background-color: #f9f9f9;
+                    border: 1px solid #d9d9d9;
+                    border-radius: 5px;
+                }
+            """)
+            item_layout = QHBoxLayout(item_widget)
+            item_layout.setContentsMargins(10, 10, 10, 10)
+            item_layout.setSpacing(10)  # Добавляем отступ между элементами
+
+            # Изображение товара (квадратное)
+            item_image = QLabel()
+            item_image.setFixedSize(50, 50)  # Картинка квадратная
+            item_image.setPixmap(QPixmap("00.jpg").scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio))
+            item_layout.addWidget(item_image)
+
+            # Название товара
+            item_label = QLabel(f"Товар {i + 1}")
+            item_label.setStyleSheet("font-size: 14px; color: #333333;")
+            item_layout.addWidget(item_label)
+
+            # Кнопки изменения количества
+            decrease_button = QPushButton("-")
+            decrease_button.setFixedSize(25, 25)  # Размер кнопки "минус"
+            decrease_button.setStyleSheet(button_style)
+            decrease_button.clicked.connect(lambda _, item_id=i: self.update_cart(item_id, -1))
+            item_layout.addWidget(decrease_button)
+
+            # Метка для отображения количества, фиксированная ширина
+            quantity_label = QLabel("0")
+            quantity_label.setFixedWidth(30)  # Ширина метки для количества
+            quantity_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            item_layout.addWidget(quantity_label)
+
+            # Кнопка увеличения количества
+            increase_button = QPushButton("+")
+            increase_button.setFixedSize(25, 25)  # Размер кнопки "плюс"
+            increase_button.setStyleSheet(button_style)
+            increase_button.clicked.connect(lambda _, item_id=i: self.update_cart(item_id, 1))
+            item_layout.addWidget(increase_button)
+
+            scroll_layout.addWidget(item_widget)
+
+            # Сохраняем связь товара с виджетами
+            self.cart[i] = {"label": item_label, "quantity_label": quantity_label, "quantity": 0}
+
+        scroll_area.setWidget(scroll_content)
+
+        # Общая сумма
+        self.total_label = QLabel("Итого: 0")
+        self.total_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        self.total_label.setStyleSheet("color: #2A5266; margin-top: 20px;")
+        layout.addWidget(self.total_label, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Кнопка завершения покупки
+        confirm_button = QPushButton("Завершить покупку")
+        confirm_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3C7993;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 16px;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #2A5266;
+            }
+        """)
+        confirm_button.clicked.connect(self.complete_purchase)
+        layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
+
+    def update_cart(self, item_id, change):
+        item = self.cart[item_id]
+        item["quantity"] += change
+        if item["quantity"] < 0:
+            item["quantity"] = 0
+        item["quantity_label"].setText(str(item["quantity"]))
+
+        self.update_total()
+
+    def update_total(self):
+        total = sum(item["quantity"] * 100 for item in self.cart.values())  # Пример: цена каждого товара = 100
+        self.total_label.setText(f"Итого: {total}")
+
+    def complete_purchase(self):
+        print("Покупка завершена")
+        # Здесь можно добавить функциональность для обработки покупки
+
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
