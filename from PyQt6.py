@@ -4,6 +4,20 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QFont
+import sys
+from PyQt6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QGridLayout,
+    QFrame,
+    QHBoxLayout,
+)
+from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtCore import Qt, QPoint
 
 def create_side_menu(button_callbacks):
     panel_widget = QWidget()
@@ -85,8 +99,9 @@ def create_top_bar():
 class MainPage(QWidget):
     def __init__(self):
         super().__init__()
+
         layout = QVBoxLayout(self)
-        
+
         # Добавляем отступы для основного макета
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
@@ -94,101 +109,185 @@ class MainPage(QWidget):
         # Заголовок
         title = QLabel("Жанры")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2A5266; margin: 0 0 20px 0;")  # Отступ снизу
+        title.setStyleSheet("color: #2A5266;")
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        # Сетка жанров
-        genres_layout = QGridLayout()
+        # Создаем виджет для прокрутки
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)  # Для автоматической подгонки размера
+        layout.addWidget(scroll_area)
+
+        # Создаем виджет, который будет внутри QScrollArea
+        scroll_widget = QWidget()
+        scroll_area.setWidget(scroll_widget)
+
+        # Сетка жанров внутри прокручиваемого виджета
+        genres_layout = QGridLayout(scroll_widget)
         genres_layout.setHorizontalSpacing(30)
         genres_layout.setVerticalSpacing(20)
-        layout.addLayout(genres_layout)
 
-        for row in range(2):
+        for row in range(5):
             for col in range(3):
-                genre_label = QLabel("изображение для жанра")
+                genre_label = QLabel()
                 genre_label.setStyleSheet("""
                     QLabel {
                         background-color: white;
                         border: 1px solid #2A5266;
                         border-radius: 10px;
-                        font-size: 12px;
                         padding: 10px;
                     }
                 """)
                 genre_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                genre_label.setFixedSize(200, 120)
-                genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignCenter)
+                genre_label.setFixedSize(300, 300)  # Размер для изображений 300x300
+
+                # Устанавливаем изображение в QLabel
+                pixmap = QPixmap("path_to_image.jpg")  # Замените на путь к изображению
+                scaled_pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                genre_label.setPixmap(scaled_pixmap)
+
+                genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
 
 class CatalogPage(QWidget):
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(10)
 
-        # Заголовок страницы
-        title = QLabel("Каталог товаров")
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
-        layout.addWidget(title)
+        # Основной layout
+        self.main_layout = QHBoxLayout(self)  # Используем QHBoxLayout для горизонтального расположения
+        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(20)
+
+        # Создаем QScrollArea для добавления скролла (слева от панели с деталями)
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+
+        # Вложенный виджет, который будет содержать все товары
+        self.scroll_widget = QWidget()
+        self.scroll_layout = QVBoxLayout(self.scroll_widget)
+        self.scroll_layout.setContentsMargins(0, 0, 0, 0)
+        self.scroll_layout.setSpacing(10)
 
         # Сетка товаров
-        grid_layout = QGridLayout()
-        grid_layout.setHorizontalSpacing(30)
-        grid_layout.setVerticalSpacing(30)
-        layout.addLayout(grid_layout)
+        self.grid_layout = QGridLayout()
+        self.grid_layout.setHorizontalSpacing(30)
+        self.grid_layout.setVerticalSpacing(30)
+        self.scroll_layout.addLayout(self.grid_layout)
+
+        # Путь к изображениям
+        images = ["00.jpg"] * 6
 
         # Добавление карточек в сетку
         for row in range(2):  # Количество строк
             for col in range(3):  # Количество столбцов
                 card_widget = QWidget()
-                card_widget.setStyleSheet("""
-                    QWidget {
-                        background-color: white;
-                        border: 1px solid #d9d9d9;
-                        border-radius: 10px;
-                    }
+                card_widget.setStyleSheet(""" 
+                    QWidget { 
+                        background-color: white; 
+                        border: 1px solid #d9d9d9; 
+                        border-radius: 10px; 
+                    } 
                 """)
                 card_layout = QVBoxLayout(card_widget)
                 card_layout.setContentsMargins(10, 10, 10, 10)
                 card_layout.setSpacing(10)
 
+                # Информация о товаре
+                product_info = f"Название: Товар {row * 3 + col + 1}\nЖанр: Жанр {row * 3 + col + 1}\nЦена: {100 * (row * 3 + col + 1)} руб."
+                image_path = images[row * 3 + col]
+
                 # Изображение товара
-                image_label = QLabel("изображение товара")
-                image_label.setStyleSheet("""
-                    QLabel {
-                        background-color: #e6e6e6;
-                        border-radius: 5px;
-                        font-size: 14px;
-                        color: #999999;
-                        padding: 40px;
-                    }
-                """)
+                image_label = QLabel(self)
+                pixmap = QPixmap(image_path)
+                image_label.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
                 image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                # Добавляем обработчик события
+                image_label.mousePressEvent = lambda event, p=image_path, i=product_info, w=image_label: self.show_product_details(p, i, w)
+
                 card_layout.addWidget(image_label)
 
                 # Кнопка "добавить"
                 add_button = QPushButton("добавить")
-                add_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #3C7993;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        font-size: 14px;
-                        padding: 10px;
-                    }
-                    QPushButton:hover {
-                        background-color: #2A5266;
-                    }
+                add_button.setStyleSheet(""" 
+                    QPushButton { 
+                        background-color: #3C7993; 
+                        color: white; 
+                        border: none; 
+                        border-radius: 5px; 
+                        font-size: 14px; 
+                        padding: 10px; 
+                    } 
+                    QPushButton:hover { 
+                        background-color: #2A5266; 
+                    } 
                 """)
                 add_button.setFixedHeight(40)
                 card_layout.addWidget(add_button)
 
                 # Добавление карточки в сетку
-                grid_layout.addWidget(card_widget, row, col)
+                self.grid_layout.addWidget(card_widget, row, col)
+
+        # Добавляем ScrollArea в основной layout
+        scroll_area.setWidget(self.scroll_widget)
+        self.main_layout.addWidget(scroll_area)
+
+        # Панель для деталей товара
+        self.details_panel = QFrame(self)
+        self.details_panel.setFixedWidth(300)
+        self.details_panel.setStyleSheet(""" 
+            QFrame { 
+                background-color: #f9f9f9; 
+                border: 1px solid #d9d9d9; 
+                border-radius: 10px; 
+            } 
+        """)
+        self.details_layout = QVBoxLayout(self.details_panel)
+        self.details_layout.setContentsMargins(20, 20, 20, 20)
+        self.details_layout.setSpacing(10)
+        self.details_panel.hide()  # Скрываем по умолчанию
+        self.main_layout.addWidget(self.details_panel)  # Добавляем справа
+
+    def show_product_details(self, image_path, product_info, widget):
+        # Удаляем старое содержимое панели
+        for i in reversed(range(self.details_layout.count())):
+            widget_item = self.details_layout.itemAt(i).widget()
+            if widget_item:
+                widget_item.deleteLater()
+
+        # Добавляем изображение товара
+        image_label = QLabel(self)
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            # Если изображение не найдено
+            image_label.setText("Изображение не загружено")
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            image_label.setStyleSheet("color: red; font-size: 14px;")
+        else:
+            image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.details_layout.addWidget(image_label)
+
+        # Добавляем информацию о товаре
+        info_label = QLabel(product_info)
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet(""" 
+            font-size: 14px; 
+            color: #333333; 
+            margin-top: 10px; 
+        """)
+        self.details_layout.addWidget(info_label)
+
+        # Перемещаем панель справа от нажатого виджета
+        widget_pos = widget.mapToGlobal(QPoint(0, 0))
+        panel_x = widget_pos.x() + widget.width() + 10
+        panel_y = widget_pos.y()
+
+        # Переводим позицию в координаты относительно окна
+        local_pos = self.mapFromGlobal(QPoint(panel_x, panel_y))
+        self.details_panel.move(local_pos.x(), local_pos.y())
+
+        # Делаем панель видимой
+        self.details_panel.show()
 
 class SoldItemsPage(QWidget):
     def __init__(self):
@@ -350,7 +449,7 @@ class SalePage(QWidget):
         layout.setSpacing(15)
 
         # Заголовок страницы
-        title = QLabel("Начать продажу")
+        title = QLabel("Продажа")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
@@ -358,7 +457,7 @@ class SalePage(QWidget):
 
         # Прокручиваемая область для товаров
         scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(False)  # Отключаем растягивание содержимого
+        scroll_area.setWidgetResizable(True)  # Включаем возможность прокрутки
         scroll_area.setStyleSheet("background-color: white; border: none;")
         layout.addWidget(scroll_area)
 
@@ -398,8 +497,8 @@ class SalePage(QWidget):
 
             # Изображение товара (квадратное)
             item_image = QLabel()
-            item_image.setFixedSize(50, 50)  # Картинка квадратная
-            item_image.setPixmap(QPixmap("00.jpg").scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio))
+            item_image.setFixedSize(200, 200)  # Картинка квадратная
+            item_image.setPixmap(QPixmap("00.jpg").scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio))
             item_layout.addWidget(item_image)
 
             # Название товара
@@ -409,20 +508,20 @@ class SalePage(QWidget):
 
             # Кнопки изменения количества
             decrease_button = QPushButton("-")
-            decrease_button.setFixedSize(25, 25)  # Размер кнопки "минус"
+            decrease_button.setFixedSize(50, 50)  # Размер кнопки "минус"
             decrease_button.setStyleSheet(button_style)
             decrease_button.clicked.connect(lambda _, item_id=i: self.update_cart(item_id, -1))
             item_layout.addWidget(decrease_button)
 
             # Метка для отображения количества, фиксированная ширина
             quantity_label = QLabel("0")
-            quantity_label.setFixedWidth(30)  # Ширина метки для количества
+            quantity_label.setFixedSize(30, 50)  # Устанавливаем фиксированную ширину и высоту
             quantity_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             item_layout.addWidget(quantity_label)
 
             # Кнопка увеличения количества
             increase_button = QPushButton("+")
-            increase_button.setFixedSize(25, 25)  # Размер кнопки "плюс"
+            increase_button.setFixedSize(50, 50)  # Размер кнопки "плюс"
             increase_button.setStyleSheet(button_style)
             increase_button.clicked.connect(lambda _, item_id=i: self.update_cart(item_id, 1))
             item_layout.addWidget(increase_button)
@@ -458,6 +557,12 @@ class SalePage(QWidget):
         confirm_button.clicked.connect(self.complete_purchase)
         layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
 
+        # Настроим растягивание: прокручиваемая область будет растягиваться
+        layout.setStretch(0, 0)  # Заголовок не растягивается
+        layout.setStretch(1, 1)  # Прокручиваемая область будет растягиваться
+        layout.setStretch(2, 0)  # Общая сумма не растягивается
+        layout.setStretch(3, 0)  # Кнопка завершения покупки не растягивается
+
     def update_cart(self, item_id, change):
         item = self.cart[item_id]
         item["quantity"] += change
@@ -474,7 +579,6 @@ class SalePage(QWidget):
     def complete_purchase(self):
         print("Покупка завершена")
         # Здесь можно добавить функциональность для обработки покупки
-
 
 
 
