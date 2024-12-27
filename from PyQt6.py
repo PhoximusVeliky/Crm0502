@@ -148,18 +148,73 @@ class MainPage(QWidget):
                 genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
 
 
+
+class ProductDetailsWindow(QWidget):
+    def __init__(self, parent, product_info, image_path):
+        super().__init__()
+        self.parent = parent  # Сохраняем ссылку на родителя для возврата
+
+        self.setWindowTitle("Подробности о товаре")
+        self.setFixedSize(400, 300)
+
+        layout = QVBoxLayout(self)
+
+        # Добавляем изображение товара
+        image_label = QLabel(self)
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            image_label.setText("Изображение не загружено")
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            image_label.setStyleSheet("color: red; font-size: 14px;")
+        else:
+            image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(image_label)
+
+        # Добавляем описание товара
+        info_label = QLabel(product_info)
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("""
+            font-size: 14px;
+            color: #333333;
+            margin-top: 10px;
+        """)
+        layout.addWidget(info_label)
+
+        # Кнопка возврата
+        back_button = QPushButton("Назад", self)
+        back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3C7993;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #2A5266;
+            }
+        """)
+        back_button.clicked.connect(self.go_back)
+        layout.addWidget(back_button)
+
+    def go_back(self):
+        self.close()  # Закрываем текущее окно
+        self.parent.show()  # Показываем родительское окно
+
 class CatalogPage(QWidget):
     def __init__(self):
         super().__init__()
 
         # Основной layout
-        self.main_layout = QHBoxLayout(self)  # Используем QHBoxLayout для горизонтального расположения
+        self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(20)
 
         # Создаем QScrollArea для добавления скролла (слева от панели с деталями)
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
 
         # Вложенный виджет, который будет содержать все товары
         self.scroll_widget = QWidget()
@@ -174,7 +229,7 @@ class CatalogPage(QWidget):
         self.scroll_layout.addLayout(self.grid_layout)
 
         # Путь к изображениям
-        images = ["00.jpg"] * 6
+        images = ["00.jpg"] * 6  # Используйте свои изображения для реального приложения
 
         # Добавление карточек в сетку
         for row in range(2):  # Количество строк
@@ -202,7 +257,7 @@ class CatalogPage(QWidget):
                 image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
                 # Добавляем обработчик события
-                image_label.mousePressEvent = lambda event, p=image_path, i=product_info, w=image_label: self.show_product_details(p, i, w)
+                image_label.mousePressEvent = lambda event, p=image_path, i=product_info: self.show_product_details(p, i)
 
                 card_layout.addWidget(image_label)
 
@@ -228,8 +283,8 @@ class CatalogPage(QWidget):
                 self.grid_layout.addWidget(card_widget, row, col)
 
         # Добавляем ScrollArea в основной layout
-        scroll_area.setWidget(self.scroll_widget)
-        self.main_layout.addWidget(scroll_area)
+        self.scroll_area.setWidget(self.scroll_widget)
+        self.main_layout.addWidget(self.scroll_area)
 
         # Панель для деталей товара
         self.details_panel = QFrame(self)
@@ -244,10 +299,11 @@ class CatalogPage(QWidget):
         self.details_layout = QVBoxLayout(self.details_panel)
         self.details_layout.setContentsMargins(20, 20, 20, 20)
         self.details_layout.setSpacing(10)
+
         self.details_panel.hide()  # Скрываем по умолчанию
         self.main_layout.addWidget(self.details_panel)  # Добавляем справа
 
-    def show_product_details(self, image_path, product_info, widget):
+    def show_product_details(self, image_path, product_info):
         # Удаляем старое содержимое панели
         for i in reversed(range(self.details_layout.count())):
             widget_item = self.details_layout.itemAt(i).widget()
@@ -258,7 +314,6 @@ class CatalogPage(QWidget):
         image_label = QLabel(self)
         pixmap = QPixmap(image_path)
         if pixmap.isNull():
-            # Если изображение не найдено
             image_label.setText("Изображение не загружено")
             image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             image_label.setStyleSheet("color: red; font-size: 14px;")
@@ -270,24 +325,67 @@ class CatalogPage(QWidget):
         # Добавляем информацию о товаре
         info_label = QLabel(product_info)
         info_label.setWordWrap(True)
-        info_label.setStyleSheet(""" 
-            font-size: 14px; 
-            color: #333333; 
-            margin-top: 10px; 
+        info_label.setStyleSheet("""
+            font-size: 14px;
+            color: #333333;
+            margin-top: 10px;
         """)
         self.details_layout.addWidget(info_label)
 
-        # Перемещаем панель справа от нажатого виджета
-        widget_pos = widget.mapToGlobal(QPoint(0, 0))
-        panel_x = widget_pos.x() + widget.width() + 10
-        panel_y = widget_pos.y()
-
-        # Переводим позицию в координаты относительно окна
-        local_pos = self.mapFromGlobal(QPoint(panel_x, panel_y))
-        self.details_panel.move(local_pos.x(), local_pos.y())
+        # Кнопка "Показать больше"
+        show_more_button = QPushButton("Показать больше", self)
+        show_more_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3C7993;
+                color: white;
+                border: none;
+                border-radius: 5px; 
+                font-size: 14px;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #2A5266;
+            }
+        """)
+        show_more_button.setFixedHeight(40)
+        show_more_button.clicked.connect(self.show_more_details)
+        self.details_layout.addWidget(show_more_button)
 
         # Делаем панель видимой
         self.details_panel.show()
+
+    def show_more_details(self):
+        # Скрываем каталог и панель с деталями товара
+        self.scroll_area.hide()
+        self.details_panel.hide()
+
+        # Создаем новый виджет с подробной информацией
+        self.more_details_widget = QWidget(self)
+        more_details_layout = QVBoxLayout(self.more_details_widget)
+        more_details_layout.setContentsMargins(20, 20, 20, 20)
+        more_details_layout.setSpacing(10)
+
+        # Пример подробной информации
+        more_details_layout.addWidget(QLabel("Дополнительная информация о товаре"))
+
+        # Кнопка для возврата
+        back_button = QPushButton("Назад", self)
+        back_button.clicked.connect(self.back_to_details)
+        more_details_layout.addWidget(back_button)
+
+        # Добавляем новый виджет в основной layout
+        self.main_layout.addWidget(self.more_details_widget)
+
+    def back_to_details(self):
+        # Убираем подробную информацию и показываем каталог и панель с деталями товара
+        self.more_details_widget.deleteLater()
+        self.scroll_area.show()
+        self.details_panel.show()
+
+
+
+
+
 
 class SoldItemsPage(QWidget):
     def __init__(self):
@@ -440,7 +538,6 @@ class ApplyCardPage(QWidget):
         confirm_button.setFixedSize(50, 50)
         layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
 
-
 class SalePage(QWidget):
     def __init__(self):
         super().__init__()
@@ -580,8 +677,6 @@ class SalePage(QWidget):
         print("Покупка завершена")
         # Здесь можно добавить функциональность для обработки покупки
 
-
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -638,15 +733,23 @@ class MainWindow(QMainWindow):
 
     def switch_page(self, page_name):
         if self.current_page is not None:
+            # Убираем текущую страницу из центрального макета
             self.content_area.itemAt(0).widget().setParent(None)
 
+            # Если текущая страница — CatalogPage, скрываем панель деталей
+            if isinstance(self.current_page, CatalogPage):
+                self.current_page.details_panel.hide()
+
+        # Настраиваем плейсхолдер поиска
         if page_name == "sold_items":
             self.search_box.setPlaceholderText("поиск по продажам")
         else:
             self.search_box.setPlaceholderText("поиск")
 
+        # Добавляем новую страницу
         self.content_area.addWidget(self.pages[page_name])
         self.current_page = self.pages[page_name]
+
 
 if __name__ == "__main__":
     import sys
