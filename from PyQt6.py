@@ -21,6 +21,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt, QPoint
 import pymysql
+import pymysql
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+)
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt
 
 def create_connection():
     """
@@ -117,6 +123,7 @@ def create_top_bar():
 
     return top_bar, search_box
 
+
 class MainPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -147,26 +154,59 @@ class MainPage(QWidget):
         genres_layout.setHorizontalSpacing(30)
         genres_layout.setVerticalSpacing(20)
 
-        for row in range(5):
-            for col in range(3):
-                genre_label = QLabel()
-                genre_label.setStyleSheet("""
-                    QLabel {
-                        background-color: white;
-                        border: 1px solid #2A5266;
-                        border-radius: 10px;
-                        padding: 10px;
-                    }
-                """)
-                genre_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                genre_label.setFixedSize(300, 300)  # Размер для изображений 300x300
+        # Получаем жанры из базы данных
+        genres = self.get_genres()
 
-                # Устанавливаем изображение в QLabel
-                pixmap = QPixmap("path_to_image.jpg")  # Замените на путь к изображению
-                scaled_pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                genre_label.setPixmap(scaled_pixmap)
+        # Добавляем жанры в сетку
+        for row in range(4):  # 4 строки
+            for col in range(3):  # 3 колонки
+                index = row * 3 + col
+                if index < len(genres):
+                    genre_name = genres[index]['name']
+                    
+                    # Создаем контейнер для изображения и текста
+                    genre_widget = QWidget()
+                    genre_widget.setStyleSheet("""
+                        QWidget {
+                            background-color: white;
+                            border: 1px solid #2A5266;
+                            border-radius: 10px;
+                            padding: 10px;
+                            text-align: center;
+                        }
+                    """)
+                    genre_layout = QVBoxLayout(genre_widget)
 
-                genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+                    # Создаем и добавляем изображение
+                    genre_label_image = QLabel()
+                    pixmap = QPixmap("00.jpg")  # Замените на путь к изображению
+                    scaled_pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    genre_label_image.setPixmap(scaled_pixmap)
+                    genre_layout.addWidget(genre_label_image, alignment=Qt.AlignmentFlag.AlignCenter)
+
+                    # Создаем и добавляем текст
+                    genre_label_text = QLabel(genre_name)
+                    genre_label_text.setFont(QFont("Arial", 14))
+                    genre_label_text.setStyleSheet("color: #2A5266; font-weight: bold;")
+                    genre_label_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    genre_layout.addWidget(genre_label_text)
+
+                    genres_layout.addWidget(genre_widget, row, col, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+
+    # Функция для получения всех жанров из базы данных
+    def get_genres(self):
+        connection = create_connection()
+        genres = []
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT * FROM Genres")
+                    genres = cursor.fetchall()
+            except pymysql.MySQLError as e:
+                print(f"Ошибка выполнения запроса: {e}")
+            finally:
+                connection.close()
+        return genres
 
 class ProductDetailsWindow(QWidget):
     def __init__(self, parent, product_info, image_path):
@@ -222,6 +262,185 @@ class ProductDetailsWindow(QWidget):
         self.close()  # Закрываем текущее окно
         self.parent.show()  # Показываем родительское окно
 
+# class CatalogPage(QWidget):
+#     def __init__(self):
+#         super().__init__()
+
+#         # Основной layout
+#         self.main_layout = QHBoxLayout(self)
+#         self.main_layout.setContentsMargins(20, 20, 20, 20)
+#         self.main_layout.setSpacing(20)
+
+#         # Создаем QScrollArea для добавления скролла (слева от панели с деталями)
+#         self.scroll_area = QScrollArea(self)
+#         self.scroll_area.setWidgetResizable(True)
+
+#         # Вложенный виджет, который будет содержать все товары
+#         self.scroll_widget = QWidget()
+#         self.scroll_layout = QVBoxLayout(self.scroll_widget)
+#         self.scroll_layout.setContentsMargins(0, 0, 0, 0)
+#         self.scroll_layout.setSpacing(10)
+
+#         # Сетка товаров
+#         self.grid_layout = QGridLayout()
+#         self.grid_layout.setHorizontalSpacing(30)
+#         self.grid_layout.setVerticalSpacing(30)
+#         self.scroll_layout.addLayout(self.grid_layout)
+
+#         # Путь к изображениям
+#         images = ["00.jpg"] * 6  # Используйте свои изображения для реального приложения
+
+#         # Добавление карточек в сетку
+#         for row in range(2):  # Количество строк
+#             for col in range(3):  # Количество столбцов
+#                 card_widget = QWidget()
+#                 card_widget.setStyleSheet(""" 
+#                     QWidget { 
+#                         background-color: white; 
+#                         border: 1px solid #d9d9d9; 
+#                         border-radius: 10px; 
+#                     } 
+#                 """)
+#                 card_layout = QVBoxLayout(card_widget)
+#                 card_layout.setContentsMargins(10, 10, 10, 10)
+#                 card_layout.setSpacing(10)
+
+#                 # Информация о товаре
+#                 product_info = f"Название: Товар {row * 3 + col + 1}\nЖанр: Жанр {row * 3 + col + 1}\nЦена: {100 * (row * 3 + col + 1)} руб."
+#                 image_path = images[row * 3 + col]
+
+#                 # Изображение товара
+#                 image_label = QLabel(self)
+#                 pixmap = QPixmap(image_path)
+#                 image_label.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
+#                 image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+#                 # Добавляем обработчик события
+#                 image_label.mousePressEvent = lambda event, p=image_path, i=product_info: self.show_product_details(p, i)
+
+#                 card_layout.addWidget(image_label)
+
+#                 # Кнопка "добавить"
+#                 add_button = QPushButton("добавить")
+#                 add_button.setStyleSheet(""" 
+#                     QPushButton { 
+#                         background-color: #3C7993; 
+#                         color: white; 
+#                         border: none; 
+#                         border-radius: 5px; 
+#                         font-size: 14px; 
+#                         padding: 10px; 
+#                     } 
+#                     QPushButton:hover { 
+#                         background-color: #2A5266; 
+#                     } 
+#                 """)
+#                 add_button.setFixedHeight(40)
+#                 card_layout.addWidget(add_button)
+
+#                 # Добавление карточки в сетку
+#                 self.grid_layout.addWidget(card_widget, row, col)
+
+#         # Добавляем ScrollArea в основной layout
+#         self.scroll_area.setWidget(self.scroll_widget)
+#         self.main_layout.addWidget(self.scroll_area)
+
+#         # Панель для деталей товара
+#         self.details_panel = QFrame(self)
+#         self.details_panel.setFixedWidth(300)
+#         self.details_panel.setStyleSheet(""" 
+#             QFrame { 
+#                 background-color: #f9f9f9; 
+#                 border: 1px solid #d9d9d9; 
+#                 border-radius: 10px; 
+#             } 
+#         """)
+#         self.details_layout = QVBoxLayout(self.details_panel)
+#         self.details_layout.setContentsMargins(20, 20, 20, 20)
+#         self.details_layout.setSpacing(10)
+
+#         self.details_panel.hide()  # Скрываем по умолчанию
+#         self.main_layout.addWidget(self.details_panel)  # Добавляем справа
+
+#     def show_product_details(self, image_path, product_info):
+#         # Удаляем старое содержимое панели
+#         for i in reversed(range(self.details_layout.count())):
+#             widget_item = self.details_layout.itemAt(i).widget()
+#             if widget_item:
+#                 widget_item.deleteLater()
+
+#         # Добавляем изображение товара
+#         image_label = QLabel(self)
+#         pixmap = QPixmap(image_path)
+#         if pixmap.isNull():
+#             image_label.setText("Изображение не загружено")
+#             image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#             image_label.setStyleSheet("color: red; font-size: 14px;")
+#         else:
+#             image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
+#             image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#         self.details_layout.addWidget(image_label)
+
+#         # Добавляем информацию о товаре
+#         info_label = QLabel(product_info)
+#         info_label.setWordWrap(True)
+#         info_label.setStyleSheet("""
+#             font-size: 14px;
+#             color: #333333;
+#             margin-top: 10px;
+#         """)
+#         self.details_layout.addWidget(info_label)
+
+#         # Кнопка "Показать больше"
+#         show_more_button = QPushButton("Показать больше", self)
+#         show_more_button.setStyleSheet("""
+#             QPushButton {
+#                 background-color: #3C7993;
+#                 color: white;
+#                 border: none;
+#                 border-radius: 5px; 
+#                 font-size: 14px;
+#                 padding: 10px;
+#             }
+#             QPushButton:hover {
+#                 background-color: #2A5266;
+#             }
+#         """)
+#         show_more_button.setFixedHeight(40)
+#         show_more_button.clicked.connect(self.show_more_details)
+#         self.details_layout.addWidget(show_more_button)
+
+#         # Делаем панель видимой
+#         self.details_panel.show()
+
+#     def show_more_details(self):
+#         # Скрываем каталог и панель с деталями товара
+#         self.scroll_area.hide()
+#         self.details_panel.hide()
+
+#         # Создаем новый виджет с подробной информацией
+#         self.more_details_widget = QWidget(self)
+#         more_details_layout = QVBoxLayout(self.more_details_widget)
+#         more_details_layout.setContentsMargins(20, 20, 20, 20)
+#         more_details_layout.setSpacing(10)
+
+#         # Пример подробной информации
+#         more_details_layout.addWidget(QLabel("Дополнительная информация о товаре"))
+
+#         # Кнопка для возврата
+#         back_button = QPushButton("Назад", self)
+#         back_button.clicked.connect(self.back_to_details)
+#         more_details_layout.addWidget(back_button)
+
+#         # Добавляем новый виджет в основной layout
+#         self.main_layout.addWidget(self.more_details_widget)
+
+#     def back_to_details(self):
+#         # Убираем подробную информацию и показываем каталог и панель с деталями товара
+#         self.more_details_widget.deleteLater()
+#         self.scroll_area.show()
+#         self.details_panel.show()
+
 class CatalogPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -247,59 +466,8 @@ class CatalogPage(QWidget):
         self.grid_layout.setVerticalSpacing(30)
         self.scroll_layout.addLayout(self.grid_layout)
 
-        # Путь к изображениям
-        images = ["00.jpg"] * 6  # Используйте свои изображения для реального приложения
-
-        # Добавление карточек в сетку
-        for row in range(2):  # Количество строк
-            for col in range(3):  # Количество столбцов
-                card_widget = QWidget()
-                card_widget.setStyleSheet(""" 
-                    QWidget { 
-                        background-color: white; 
-                        border: 1px solid #d9d9d9; 
-                        border-radius: 10px; 
-                    } 
-                """)
-                card_layout = QVBoxLayout(card_widget)
-                card_layout.setContentsMargins(10, 10, 10, 10)
-                card_layout.setSpacing(10)
-
-                # Информация о товаре
-                product_info = f"Название: Товар {row * 3 + col + 1}\nЖанр: Жанр {row * 3 + col + 1}\nЦена: {100 * (row * 3 + col + 1)} руб."
-                image_path = images[row * 3 + col]
-
-                # Изображение товара
-                image_label = QLabel(self)
-                pixmap = QPixmap(image_path)
-                image_label.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
-                image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                # Добавляем обработчик события
-                image_label.mousePressEvent = lambda event, p=image_path, i=product_info: self.show_product_details(p, i)
-
-                card_layout.addWidget(image_label)
-
-                # Кнопка "добавить"
-                add_button = QPushButton("добавить")
-                add_button.setStyleSheet(""" 
-                    QPushButton { 
-                        background-color: #3C7993; 
-                        color: white; 
-                        border: none; 
-                        border-radius: 5px; 
-                        font-size: 14px; 
-                        padding: 10px; 
-                    } 
-                    QPushButton:hover { 
-                        background-color: #2A5266; 
-                    } 
-                """)
-                add_button.setFixedHeight(40)
-                card_layout.addWidget(add_button)
-
-                # Добавление карточки в сетку
-                self.grid_layout.addWidget(card_widget, row, col)
+        # Загрузка данных из базы
+        self.load_products()
 
         # Добавляем ScrollArea в основной layout
         self.scroll_area.setWidget(self.scroll_widget)
@@ -322,14 +490,90 @@ class CatalogPage(QWidget):
         self.details_panel.hide()  # Скрываем по умолчанию
         self.main_layout.addWidget(self.details_panel)  # Добавляем справа
 
+    def load_products(self):
+        connection = create_connection()
+        if connection:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT 
+                            p.id_product,
+                            p.name, 
+                            GROUP_CONCAT(g.name SEPARATOR ', ') AS genres, 
+                            p.price, 
+                            p.age_category, 
+                            p.difficulty, 
+                            i.image_path
+                        FROM Products p
+                        LEFT JOIN Product_Genres pg ON p.id_product = pg.id_product
+                        LEFT JOIN Genres g ON pg.id_genre = g.id_genre
+                        LEFT JOIN Images i ON p.id_product = i.id_product
+                        GROUP BY p.id_product, p.name, p.price, p.age_category, p.difficulty, i.image_path
+                    """)
+
+                    products = cursor.fetchall()
+                    row, col = 0, 0
+                    for product in products:
+                        self.add_product_card(product, row, col)
+                        col += 1
+                        if col == 3:
+                            col = 0
+                            row += 1
+            finally:
+                connection.close()
+
+    def add_product_card(self, product, row, col):
+        card_widget = QWidget()
+        card_widget.setStyleSheet(""" 
+            QWidget { 
+                background-color: white; 
+                border: 1px solid #d9d9d9; 
+                border-radius: 10px; 
+            } 
+        """)
+        card_layout = QVBoxLayout(card_widget)
+        card_layout.setContentsMargins(10, 10, 10, 10)
+        card_layout.setSpacing(10)
+
+        product_info = f"Название: {product['name']}\nЖанры: {product['genres']}\nЦена: {product['price']} руб.\nВозраст: {product['age_category']}\nСложность: {product['difficulty']}"
+        image_path = product['image_path'] if product['image_path'] else 'placeholder.jpg'
+
+        image_label = QLabel(self)
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            image_label.setText("Изображение не загружено")
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            image_label.setStyleSheet("color: red; font-size: 14px;")
+        else:
+            image_label.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        image_label.mousePressEvent = lambda event, p=image_path, i=product_info: self.show_product_details(p, i)
+
+        card_layout.addWidget(image_label)
+        add_button = QPushButton("добавить")
+        add_button.setStyleSheet(""" 
+            QPushButton { 
+                background-color: #3C7993; 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                font-size: 14px; 
+                padding: 10px; 
+            } 
+            QPushButton:hover { 
+                background-color: #2A5266; 
+            } 
+        """)
+        add_button.setFixedHeight(40)
+        card_layout.addWidget(add_button)
+        self.grid_layout.addWidget(card_widget, row, col)
+
     def show_product_details(self, image_path, product_info):
-        # Удаляем старое содержимое панели
         for i in reversed(range(self.details_layout.count())):
             widget_item = self.details_layout.itemAt(i).widget()
             if widget_item:
                 widget_item.deleteLater()
 
-        # Добавляем изображение товара
         image_label = QLabel(self)
         pixmap = QPixmap(image_path)
         if pixmap.isNull():
@@ -341,7 +585,6 @@ class CatalogPage(QWidget):
             image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.details_layout.addWidget(image_label)
 
-        # Добавляем информацию о товаре
         info_label = QLabel(product_info)
         info_label.setWordWrap(True)
         info_label.setStyleSheet("""
@@ -350,56 +593,8 @@ class CatalogPage(QWidget):
             margin-top: 10px;
         """)
         self.details_layout.addWidget(info_label)
-
-        # Кнопка "Показать больше"
-        show_more_button = QPushButton("Показать больше", self)
-        show_more_button.setStyleSheet("""
-            QPushButton {
-                background-color: #3C7993;
-                color: white;
-                border: none;
-                border-radius: 5px; 
-                font-size: 14px;
-                padding: 10px;
-            }
-            QPushButton:hover {
-                background-color: #2A5266;
-            }
-        """)
-        show_more_button.setFixedHeight(40)
-        show_more_button.clicked.connect(self.show_more_details)
-        self.details_layout.addWidget(show_more_button)
-
-        # Делаем панель видимой
         self.details_panel.show()
 
-    def show_more_details(self):
-        # Скрываем каталог и панель с деталями товара
-        self.scroll_area.hide()
-        self.details_panel.hide()
-
-        # Создаем новый виджет с подробной информацией
-        self.more_details_widget = QWidget(self)
-        more_details_layout = QVBoxLayout(self.more_details_widget)
-        more_details_layout.setContentsMargins(20, 20, 20, 20)
-        more_details_layout.setSpacing(10)
-
-        # Пример подробной информации
-        more_details_layout.addWidget(QLabel("Дополнительная информация о товаре"))
-
-        # Кнопка для возврата
-        back_button = QPushButton("Назад", self)
-        back_button.clicked.connect(self.back_to_details)
-        more_details_layout.addWidget(back_button)
-
-        # Добавляем новый виджет в основной layout
-        self.main_layout.addWidget(self.more_details_widget)
-
-    def back_to_details(self):
-        # Убираем подробную информацию и показываем каталог и панель с деталями товара
-        self.more_details_widget.deleteLater()
-        self.scroll_area.show()
-        self.details_panel.show()
 
 class SoldItemsPage(QWidget):
     def __init__(self):
@@ -446,7 +641,7 @@ class SoldItemsPage(QWidget):
                     sale_layout.setContentsMargins(10, 10, 10, 10)
                     sale_layout.setSpacing(5)
 
-                    sale_info = QLabel(f"Дата продажи: {row['sale_date']} Количество: {row['quantity']}")
+                    sale_info = QLabel(f"Дата продажи: {row['sale_date']} Количество наименований: {row['quantity']}")
                     sale_info.setStyleSheet("font-size: 14px; color: #333333;")
                     sale_layout.addWidget(sale_info)
 
@@ -523,24 +718,25 @@ class SoldItemsPage(QWidget):
 class ApplyCardPage(QWidget):
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(15)
 
         # Заголовок
         title = QLabel("Оформление карты")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
-        layout.addWidget(title)
+        self.layout.addWidget(title)
 
         # Поля ввода
+        self.inputs = {}
         fields = ["ФИО клиента", "номер телефона", "e-mail", "номер карты"]
         for field in fields:
             label = QLabel(field)
             label.setFont(QFont("Arial", 14))
             label.setStyleSheet("color: #2A5266;")
-            layout.addWidget(label)
+            self.layout.addWidget(label)
 
             input_field = QLineEdit()
             input_field.setStyleSheet("""
@@ -552,10 +748,11 @@ class ApplyCardPage(QWidget):
                     font-size: 14px;
                 }
             """)
-            layout.addWidget(input_field)
+            self.layout.addWidget(input_field)
+            self.inputs[field] = input_field
 
         # Кнопка подтверждения
-        confirm_button = QPushButton()
+        confirm_button = QPushButton("Подтвердить")
         confirm_button.setStyleSheet("""
             QPushButton {
                 background-color: #3C7993;
@@ -569,8 +766,43 @@ class ApplyCardPage(QWidget):
                 background-color: #2A5266;
             }
         """)
-        confirm_button.setFixedSize(50, 50)
-        layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
+        confirm_button.setFixedHeight(50)
+        confirm_button.clicked.connect(self.save_to_db)
+        self.layout.addWidget(confirm_button, alignment=Qt.AlignmentFlag.AlignRight)
+
+    def save_to_db(self):
+        """Сохраняет данные из формы в базу данных."""
+        try:
+            # Считываем данные из полей ввода
+            client_name = self.inputs["ФИО клиента"].text()
+            phone_number = self.inputs["номер телефона"].text()
+            email = self.inputs["e-mail"].text()
+            card_number = self.inputs["номер карты"].text()
+
+            # Проверяем, что поля не пустые
+            if not all([client_name, phone_number, email, card_number]):
+                QMessageBox.warning(self, "Ошибка", "Все поля должны быть заполнены!")
+                return
+
+            # Подключение к базе данных
+            connection = create_connection()
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO Clients (client_name, phone_number, email, card_number)
+                    VALUES (%s, %s, %s, %s)
+                """, (client_name, phone_number, email, card_number))
+                connection.commit()
+
+            QMessageBox.information(self, "Успех", "Данные успешно сохранены!")
+            # Очищаем поля
+            for field in self.inputs.values():
+                field.clear()
+
+        except pymysql.MySQLError as e:
+            QMessageBox.critical(self, "Ошибка базы данных", f"Не удалось сохранить данные: {e}")
+        finally:
+            if 'connection' in locals() and connection.open:
+                connection.close()
 
 class SalePage(QWidget):
     def __init__(self):
