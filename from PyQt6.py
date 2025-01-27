@@ -15,9 +15,30 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QFrame,
     QHBoxLayout,
+    QTableWidgetItem, QSpinBox, QLineEdit, QPushButton,
+
 )
 from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt, QPoint
+import pymysql
+
+def create_connection():
+    """
+    Создаёт соединение с одной статичной базой данных.
+    """
+    connection = None
+    try:
+        connection = pymysql.connect(
+            host='5.183.188.132',      # Хост базы данных
+            user='host',           # Пользователь базы данных
+            password='thasrCt3pKYWAYcK', # Пароль пользователя
+            db='db_vgu_test2'  # Название базы данных
+        )
+        print("Соединение с базой данных успешно установлено.")
+    except pymysql.MySQLError as e:
+        print(f"Ошибка подключения к базе данных: {e}")
+    return connection
+
 
 def create_side_menu(button_callbacks):
     panel_widget = QWidget()
@@ -146,8 +167,6 @@ class MainPage(QWidget):
                 genre_label.setPixmap(scaled_pixmap)
 
                 genres_layout.addWidget(genre_label, row, col, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
-
-
 
 class ProductDetailsWindow(QWidget):
     def __init__(self, parent, product_info, image_path):
@@ -381,11 +400,6 @@ class CatalogPage(QWidget):
         self.more_details_widget.deleteLater()
         self.scroll_area.show()
         self.details_panel.show()
-
-
-
-
-
 
 class SoldItemsPage(QWidget):
     def __init__(self):
@@ -675,7 +689,99 @@ class SalePage(QWidget):
 
     def complete_purchase(self):
         print("Покупка завершена")
-        # Здесь можно добавить функциональность для обработки покупки
+        self.sale_dialog = SaleDialog()  # Сохраняем ссылку на объект
+        self.sale_dialog.show()
+
+class SaleDialog(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Продажа")
+        self.setStyleSheet("background-color: white;")
+        self.setMinimumSize(600, 400)
+
+        layout = QVBoxLayout(self)
+
+        title = QLabel("Оформление продажи")
+        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2A5266;")
+        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Название", "Количество", "Цена за шт"])
+        layout.addWidget(self.table)
+
+        controls_layout = QHBoxLayout()
+
+        total_label = QLabel("Итого: ")
+        total_label.setFont(QFont("Arial", 14))
+        total_label.setStyleSheet("color: #2A5266;")
+        controls_layout.addWidget(total_label)
+
+        self.total_field = QLineEdit()
+        self.total_field.setReadOnly(True)
+        self.total_field.setText("0")
+        controls_layout.addWidget(self.total_field)
+
+        confirm_button = QPushButton("Подтвердить")
+        confirm_button.setStyleSheet("background-color: #3C7993; color: white;")
+        confirm_button.clicked.connect(self.finalize_sale)
+        controls_layout.addWidget(confirm_button)
+
+        layout.addLayout(controls_layout)
+
+        self.add_test_data()
+
+    def add_test_data(self):
+        items = [("Товар 1", 2, 500), ("Товар 2", 1, 300), ("Товар 3", 4, 200)]
+        for name, quantity, price in items:
+            row_position = self.table.rowCount()
+            self.table.insertRow(row_position)
+            self.table.setItem(row_position, 0, QTableWidgetItem(name))
+
+            quantity_spinbox = QSpinBox()
+            quantity_spinbox.setValue(quantity)
+            quantity_spinbox.setMinimum(1)
+            quantity_spinbox.valueChanged.connect(self.update_total)
+            self.table.setCellWidget(row_position, 1, quantity_spinbox)
+
+            self.table.setItem(row_position, 2, QTableWidgetItem(str(price)))
+        self.update_total()
+
+    def update_total(self):
+        total = 0
+        for row in range(self.table.rowCount()):
+            price_item = self.table.item(row, 2)
+            quantity_widget = self.table.cellWidget(row, 1)
+            if price_item and quantity_widget:
+                total += int(price_item.text()) * quantity_widget.value()
+        self.total_field.setText(str(total))
+
+    def confirm_sale(self):
+        total = self.total_field.text()
+        confirmation_dialog = QDialog(self)
+        confirmation_dialog.setWindowTitle("Подтверждение продажи")
+        confirmation_dialog.setMinimumSize(300, 150)
+        dialog_layout = QVBoxLayout(confirmation_dialog)
+
+        confirm_message = QLabel(f"Вы подтверждаете продажу на сумму {total}?")
+        dialog_layout.addWidget(confirm_message, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        button_layout = QHBoxLayout()
+
+        yes_button = QPushButton("Да")
+        yes_button.clicked.connect(lambda: self.finalize_sale(confirmation_dialog))
+        button_layout.addWidget(yes_button)
+
+        no_button = QPushButton("Нет")
+        no_button.clicked.connect(confirmation_dialog.reject)
+        button_layout.addWidget(no_button)
+
+        dialog_layout.addLayout(button_layout)
+        confirmation_dialog.exec()
+
+    def finalize_sale(self, confirmation_dialog):
+        print("Продажа подтверждена на сумму:", self.total_field.text())
+        self.close()  # Закрываем окно после подтверждения
 
 class MainWindow(QMainWindow):
     def __init__(self):
