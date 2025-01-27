@@ -24,21 +24,21 @@ import pymysql
 
 def create_connection():
     """
-    Создаёт соединение с одной статичной базой данных.
+    Создаёт соединение с базой данных MySQL.
     """
     connection = None
     try:
         connection = pymysql.connect(
-            host='5.183.188.132',      # Хост базы данных
-            user='host',           # Пользователь базы данных
-            password='thasrCt3pKYWAYcK', # Пароль пользователя
-            db='db_vgu_test2'  # Название базы данных
+            host='127.0.0.1',  # Локальный хост
+            user='root',       # Пользователь базы данных
+            password='1234',   # Пароль пользователя
+            db='CRM',          # Название базы данных
+            cursorclass=pymysql.cursors.DictCursor  # Получение результатов в виде словаря
         )
         print("Соединение с базой данных успешно установлено.")
     except pymysql.MySQLError as e:
         print(f"Ошибка подключения к базе данных: {e}")
     return connection
-
 
 def create_side_menu(button_callbacks):
     panel_widget = QWidget()
@@ -408,91 +408,111 @@ class SoldItemsPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
 
-        # Заголовок страницы
         title = QLabel("Проданные товары")
         title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title.setStyleSheet("color: #2A5266; margin-bottom: 20px;")
         layout.addWidget(title)
 
-        # Прокручиваемая область для списка продаж
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("background-color: white; border: none;")
         layout.addWidget(scroll_area)
 
-        # Контейнер внутри прокручиваемой области
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(10, 10, 10, 10)
         scroll_layout.setSpacing(10)
 
-        for i in range(10):
-            sale_widget = QWidget()
-            sale_widget.setStyleSheet("""
-                QWidget {
-                    background-color: #f9f9f9;
-                    border: 1px solid #d9d9d9;
-                    border-radius: 5px;
-                }
-            """)
-            sale_layout = QVBoxLayout(sale_widget)
-            sale_layout.setContentsMargins(10, 10, 10, 10)
-            sale_layout.setSpacing(5)
+        connection = create_connection()
+        if connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT Sales.id_sale, Sales.sale_date, Sales_Details.quantity
+                    FROM Sales
+                    JOIN Sales_Details ON Sales.id_sale = Sales_Details.id_sale;
+                """)
+                results = cursor.fetchall()
+                for row in results:
+                    sale_widget = QWidget()
+                    sale_widget.setStyleSheet("""
+                        QWidget {
+                            background-color: #f9f9f9;
+                            border: 1px solid #d9d9d9;
+                            border-radius: 5px;
+                        }
+                    """)
+                    sale_layout = QVBoxLayout(sale_widget)
+                    sale_layout.setContentsMargins(10, 10, 10, 10)
+                    sale_layout.setSpacing(5)
 
-            sale_info = QLabel(f"Дата продажи: 2023-12-25  Количество: {i + 1}")
-            sale_info.setStyleSheet("font-size: 14px; color: #333333;")
-            sale_layout.addWidget(sale_info)
+                    sale_info = QLabel(f"Дата продажи: {row['sale_date']} Количество: {row['quantity']}")
+                    sale_info.setStyleSheet("font-size: 14px; color: #333333;")
+                    sale_layout.addWidget(sale_info)
 
-            more_button = QPushButton("показать больше")
-            more_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #3C7993;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    font-size: 14px;
-                    padding: 5px;
-                }
-                QPushButton:hover {
-                    background-color: #2A5266;
-                }
-            """)
-            more_button.clicked.connect(lambda _, i=i: self.show_more_info(i))
-            sale_layout.addWidget(more_button, alignment=Qt.AlignmentFlag.AlignRight)
+                    more_button = QPushButton("показать больше")
+                    more_button.setStyleSheet("""
+                        QPushButton {
+                            background-color: #3C7993;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            font-size: 14px;
+                            padding: 5px;
+                        }
+                        QPushButton:hover {
+                            background-color: #2A5266;
+                        }
+                    """)
+                    more_button.clicked.connect(lambda _, sale_id=row['id_sale']: self.show_more_info(sale_id))
+                    sale_layout.addWidget(more_button, alignment=Qt.AlignmentFlag.AlignRight)
 
-            scroll_layout.addWidget(sale_widget)
+                    scroll_layout.addWidget(sale_widget)
+            connection.close()
 
         scroll_area.setWidget(scroll_content)
 
-    def show_more_info(self, index):
+    def show_more_info(self, sale_id):
         details_window = QDialog()
         details_window.setWindowTitle("Подробности продажи")
         details_window.setStyleSheet("background-color: white;")
 
         details_layout = QVBoxLayout(details_window)
 
-        title = QLabel(f"Детали продажи №{index + 1}")
+        title = QLabel(f"Детали продажи №{sale_id}")
         title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         title.setStyleSheet("color: #2A5266;")
         details_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        table = QTableWidget(3, 3)
+        table = QTableWidget(0, 3)
         table.setHorizontalHeaderLabels(["Наименование", "Кол-во", "Цена за шт"])
-        table.setItem(0, 0, QTableWidgetItem("Товар 1"))
-        table.setItem(0, 1, QTableWidgetItem("2"))
-        table.setItem(0, 2, QTableWidgetItem("500"))
 
-        table.setItem(1, 0, QTableWidgetItem("Товар 2"))
-        table.setItem(1, 1, QTableWidgetItem("1"))
-        table.setItem(1, 2, QTableWidgetItem("300"))
+        total_price = 0  # Для подсчета итоговой суммы
 
-        table.setItem(2, 0, QTableWidgetItem("Товар 3"))
-        table.setItem(2, 1, QTableWidgetItem("4"))
-        table.setItem(2, 2, QTableWidgetItem("200"))
+        connection = create_connection()
+        if connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT Products.name, Sales_Details.quantity, Products.price
+                    FROM Sales_Details
+                    JOIN Products ON Sales_Details.id_product = Products.id_product
+                    WHERE Sales_Details.id_sale = %s
+                """, (sale_id,))
+                results = cursor.fetchall()
+                for row_index, row in enumerate(results):
+                    table.insertRow(row_index)
+                    table.setItem(row_index, 0, QTableWidgetItem(row['name']))
+                    table.setItem(row_index, 1, QTableWidgetItem(str(row['quantity'])))
+                    table.setItem(row_index, 2, QTableWidgetItem(str(row['price'])))
+                    
+                    # Рассчитываем общую стоимость для каждого товара
+                    total_price += row['quantity'] * row['price']
+            connection.close()
+
         details_layout.addWidget(table)
 
-        total_label = QLabel("Итого: 2300")
+        # Добавляем метку с итоговой суммой
+        total_label = QLabel(f"Итого: {total_price:.2f}")
         total_label.setFont(QFont("Arial", 14))
         total_label.setStyleSheet("color: #2A5266;")
         details_layout.addWidget(total_label, alignment=Qt.AlignmentFlag.AlignRight)
