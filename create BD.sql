@@ -61,7 +61,7 @@ CREATE TABLE Sales_Details (
     id_detail INT AUTO_INCREMENT PRIMARY KEY,
     id_sale INT NOT NULL,
     id_product INT NOT NULL,
-    quantity INT NOT NULL CHECK (quantity > 0),
+    quantity INT NOT NULL CHECK (quantity >= 0),
     FOREIGN KEY (id_sale) REFERENCES Sales(id_sale) ON DELETE CASCADE,
     FOREIGN KEY (id_product) REFERENCES Products(id_product) ON DELETE CASCADE
 );
